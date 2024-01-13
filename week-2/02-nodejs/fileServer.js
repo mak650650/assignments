@@ -17,5 +17,70 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 
+const PORT = 5000;
+const HOST = '127.0.0.1';
+
+app.use((req,res ,next)=>{
+  const isPath = req.path === '/files' || req.path.startsWith('/files/');
+  if(!isPath){
+    res.status(404).send('Route not found');
+  }
+  next();
+});
+
+// '/files' for getting all the content inside the directory
+app.get('/files',(req, res)=>{
+  const PATH = path.join(__dirname+`/files`);
+  
+  const APP = {
+    "readDirectoryContent":()=>{
+      return new Promise(function(resolve,reject){
+        fs.readdir(PATH,(err,data)=>{
+          resolve(data)
+          if(err){
+            reject(err)
+          }
+        })      
+      })
+    },
+  }
+  APP["readDirectoryContent"]().then((data)=>{   
+      res.send(data)
+  },()=>{res.statusCode(500).json({error:"Failed to retrive file"});})
+ 
+});
+
+// '/files/filename' give the content of filename
+app.get('/files/:filename',(req,res)=>{
+  // res.send(req.params.filename)
+  const PATH = path.join(__dirname+`/files/${req.params.filename}`);
+  const APP = {
+    "readFileContent":()=>{ 
+      return new Promise(function(resolve,reject){
+        fs.readFile(PATH,(err,data)=>{
+          if(err){
+            reject(err);
+          }
+          resolve(data)
+        })
+      });
+    },
+  }
+
+  APP['readFileContent']().then((data)=>{
+    res.send(data.toString())
+  },(err)=>{
+    return res.status(404).send('File not found')
+  })
+
+
+});
+
+
+
+
+app.listen(PORT ,()=>{
+  console.log(`Server is live on ${HOST}:${PORT}`);
+})
 
 module.exports = app;
